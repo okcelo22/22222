@@ -193,13 +193,25 @@ logger.error = (msg, options) => {
 	loggerError(msg, options);
 }
 
+const optionalDevPlugins = [];
+
+if (isDev) {
+        if (typeof inlineEditPlugin === 'function') {
+                optionalDevPlugins.push(inlineEditPlugin());
+        }
+
+        if (typeof editModeDevPlugin === 'function') {
+                optionalDevPlugins.push(editModeDevPlugin());
+        }
+}
+
 export default defineConfig({
-	customLogger: logger,
-	plugins: [
-		...(isDev ? [inlineEditPlugin(), editModeDevPlugin()] : []),
-		react(),
-		addTransformIndexHtml
-	],
+        customLogger: logger,
+        plugins: [
+                ...optionalDevPlugins,
+                react(),
+                addTransformIndexHtml
+        ],
 	server: {
 		cors: true,
 		headers: {
