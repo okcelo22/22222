@@ -2,12 +2,16 @@ import path from 'node:path';
 import react from '@vitejs/plugin-react';
 import { createLogger, defineConfig } from 'vite';
 
-const isDev = process.env.NODE_ENV !== 'production';
+const isDev = process.env.NODE_ENV === 'development';
 let inlineEditPlugin, editModeDevPlugin;
 
 if (isDev) {
-	inlineEditPlugin = (await import('./plugins/visual-editor/vite-plugin-react-inline-editor.js')).default;
-	editModeDevPlugin = (await import('./plugins/visual-editor/vite-plugin-edit-mode.js')).default;
+        try {
+                inlineEditPlugin = (await import('./plugins/visual-editor/vite-plugin-react-inline-editor.js')).default;
+                editModeDevPlugin = (await import('./plugins/visual-editor/vite-plugin-edit-mode.js')).default;
+        } catch (error) {
+                console.warn('Optional visual editor plugins yüklenemedi:', error?.message ?? error);
+        }
 }
 
 const configHorizonsViteErrorHandler = `
@@ -189,13 +193,25 @@ logger.error = (msg, options) => {
 	loggerError(msg, options);
 }
 
+const optionalDevPlugins = [];
+
+if (isDev) {
+        if (typeof inlineEditPlugin === 'function') {
+                optionalDevPlugins.push(inlineEditPlugin());
+        }
+
+        if (typeof editModeDevPlugin === 'function') {
+                optionalDevPlugins.push(editModeDevPlugin());
+        }
+}
+
 export default defineConfig({
-	customLogger: logger,
-	plugins: [
-		...(isDev ? [inlineEditPlugin(), editModeDevPlugin()] : []),
-		react(),
-		addTransformIndexHtml
-	],
+        customLogger: logger,
+        plugins: [
+                ...optionalDevPlugins,
+                react(),
+                addTransformIndexHtml
+        ],
 	server: {
 		cors: true,
 		headers: {
