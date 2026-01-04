@@ -1,13 +1,19 @@
+import fs from 'node:fs';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import react from '@vitejs/plugin-react';
 import { createLogger, defineConfig } from 'vite';
 
 const isDev = process.env.NODE_ENV !== 'production';
+const inlineEditorPath = path.resolve('./plugins/visual-editor/vite-plugin-react-inline-editor.js');
+const editModePath = path.resolve('./plugins/visual-editor/vite-plugin-edit-mode.js');
+const hasInlineEditor = fs.existsSync(inlineEditorPath);
+const hasEditMode = fs.existsSync(editModePath);
 let inlineEditPlugin, editModeDevPlugin;
 
-if (isDev) {
-	inlineEditPlugin = (await import('./plugins/visual-editor/vite-plugin-react-inline-editor.js')).default;
-	editModeDevPlugin = (await import('./plugins/visual-editor/vite-plugin-edit-mode.js')).default;
+if (isDev && hasInlineEditor && hasEditMode) {
+	inlineEditPlugin = (await import(pathToFileURL(inlineEditorPath).href)).default;
+	editModeDevPlugin = (await import(pathToFileURL(editModePath).href)).default;
 }
 
 const configHorizonsViteErrorHandler = `
@@ -192,7 +198,7 @@ logger.error = (msg, options) => {
 export default defineConfig({
 	customLogger: logger,
 	plugins: [
-		...(isDev ? [inlineEditPlugin(), editModeDevPlugin()] : []),
+		...(isDev && inlineEditPlugin && editModeDevPlugin ? [inlineEditPlugin(), editModeDevPlugin()] : []),
 		react(),
 		addTransformIndexHtml
 	],
